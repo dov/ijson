@@ -24,7 +24,7 @@ import json
 import collections
 import re
 
-# The following "magic" allows "dot access" to xnm files.
+# The following "magic" allows "dot access" to json files.
 class dotdict(dict):
     def __init__(self):
         dict.__init__(self)
@@ -45,6 +45,14 @@ class dotdict(dict):
     def iteritems(self):
         for k in self._myorder:
             yield k,self[k]
+
+    def __str__(self):
+        return ('{'
+                + ', '.join('\'{key}\': {value}'.format(key=k,
+                                                        value=self.get(k))
+                            for k in self._myorder)
+                + '}')
+                            
 
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
@@ -75,16 +83,29 @@ def load(hdl):
     return loads(hdl.read())
 
 def loads(s):
-    return dotdictify(json.loads(s))
+    return dotdictify(
+        json.loads(
+            # Regular expression to remove c++ and hash comments
+            re.sub(r'\s*(?:#|//).*','',s,re.MULTILINE)
+        ))
 
 def dumps(s, indent=2):
     return json.dumps(s, indent=indent)
 
 if __name__=='__main__':
-    a = { 'a':3,'b':4 }
+    a = { 'a':3,'b': {'c':4} }
+    ajson = ('{\n'
+             '    "a": 3, # comment\n'
+             '    "b": {  // c++ comment\n'
+             '    "c": 4\n'
+             '  }\n'
+             '}\n')
+
+    print dumps(a)
 
     ja = loads(dumps(a))
     print ja.a
+    print ja
     
     
     
